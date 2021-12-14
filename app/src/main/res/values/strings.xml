@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">IOT Commander</string>
+    <string name="discover_title">Discover Devices</string>
 </resources>

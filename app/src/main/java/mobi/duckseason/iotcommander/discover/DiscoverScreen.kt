@@ -9,18 +9,23 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import iotcommander.R
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
 
-private val SPACING = 10.dp
+private val SPACING_SMALL = 10.dp
+private val SPACING_MEDIUM = 16.dp
+private val SPACING_HUGE = 32.dp
+private val SPACING_ENORMOUS = 64.dp
 
 @Composable
 fun DiscoverScreen(
@@ -33,7 +38,7 @@ fun DiscoverScreen(
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = { AppBar(onRefreshRequested, discoverViewState.loadingState) },
-        content = { Content(discoverViewState.devices) }
+        content = { Content(discoverViewState) }
     )
 }
 
@@ -44,52 +49,83 @@ private fun AppBar(onRefreshRequested: () -> Unit, loadingState: Boolean) {
             Text(text = stringResource(id = R.string.discover_title))
         },
         actions = {
-            if (loadingState) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp).padding(16.dp),
-                    strokeWidth = 2.dp
+            IconButton(
+                onClick = onRefreshRequested,
+                enabled = loadingState.not()
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
                 )
-            } else {
-                IconButton(onClick = onRefreshRequested) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = null,
-                    )
-                }
             }
         }
     )
 }
 
 @Composable
-private fun Content(devices: List<Device>) {
-    LazyColumn(
-        contentPadding = PaddingValues(SPACING),
-        verticalArrangement = Arrangement.spacedBy(SPACING)
-    ) {
-        items(devices) { item: Device ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colors.surface,
-                        shape = RoundedCornerShape(SPACING)
+private fun Content(discoverViewState: DiscoverViewState) {
+    if (discoverViewState.devices.isEmpty() && discoverViewState.loadingState.not()) {
+        DiscoverEmptyState()
+    }
+
+    Column {
+        LazyColumn(
+            contentPadding = PaddingValues(SPACING_SMALL),
+            verticalArrangement = Arrangement.spacedBy(SPACING_SMALL)
+        ) {
+            items(discoverViewState.devices) { item: Device ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colors.surface,
+                            shape = RoundedCornerShape(SPACING_SMALL)
+                        )
+                        .padding(horizontal = SPACING_SMALL * 2, vertical = SPACING_SMALL)
+                ) {
+                    Text(
+                        text = item.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    .padding(horizontal = SPACING * 2, vertical = SPACING)
+                    Text(
+                        text = item.ip,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 12.sp,
+                        modifier = Modifier.alpha(0.4f)
+                    )
+                }
+            }
+        }
+
+        if (discoverViewState.loadingState) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = item.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = item.ip,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 12.sp,
-                    modifier = Modifier.alpha(0.4f)
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(SPACING_MEDIUM)
                 )
             }
         }
+
+    }
+}
+
+@Composable
+private fun DiscoverEmptyState() {
+    Column(modifier = Modifier.padding(SPACING_ENORMOUS)) {
+        Text(
+            text = stringResource(id = R.string.discover_empty_state_message),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = SPACING_HUGE),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = stringResource(id = R.string.discover_empty_state_description),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -116,5 +152,13 @@ private fun LightPreview() {
 
     IOTCommanderTheme(darkTheme = false) {
         DiscoverScreen(DiscoverViewState(devices = devices, false)) {}
+    }
+}
+
+@Composable
+@Preview
+private fun EmptyStatePreview() {
+    IOTCommanderTheme(darkTheme = true) {
+        DiscoverScreen(DiscoverViewState(devices = emptyList(), false)) {}
     }
 }

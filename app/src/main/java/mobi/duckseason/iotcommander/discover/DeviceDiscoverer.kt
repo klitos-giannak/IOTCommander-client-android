@@ -33,7 +33,13 @@ class DeviceDiscoverer(private val appContext: Context) {
     private val _searching = MutableStateFlow(false)
     val searching = _searching.asStateFlow()
 
+    private fun resetFound() {
+        devices.clear()
+        _devicesFlow.value = devices.toSet()
+    }
+
     fun invokeSearch() = thread(name = TAG) {
+        resetFound()
         _searching.value = true
 
         val datagramSocket = try {

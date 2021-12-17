@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">IOT Commander</string>
     <string name="discover_title">Discover Devices</string>
+    <string name="discover_searching">Searching your network…</string>
+    <string name="discover_empty_state_message">No Devices Found 😞</string>
+    <string name="discover_empty_state_description">Make sure you\'re connected to the same network as your device(s) and refresh.</string>
 </resources>

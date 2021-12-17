@@ -36,4 +36,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun selectDevice(device: Device) {
         // TODO
     }
+
+    fun onBackNavigation() {
+        _navigation.trySend(NavRoutes.BACK)
+    }
 }

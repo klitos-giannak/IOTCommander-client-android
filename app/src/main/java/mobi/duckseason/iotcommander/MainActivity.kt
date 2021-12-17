@@ -58,4 +58,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onBackPressed() {
+        viewModel.onBackNavigation()
+    }
 }

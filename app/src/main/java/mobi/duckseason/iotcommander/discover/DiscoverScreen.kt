@@ -1,6 +1,7 @@
 package mobi.duckseason.iotcommander.discover
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,7 +31,8 @@ private val SPACING_ENORMOUS = 64.dp
 @Composable
 fun DiscoverScreen(
     discoverViewState: DiscoverViewState,
-    onRefreshRequested: () -> Unit
+    onRefreshRequested: () -> Unit,
+    onSelectItem: (device:Device) -> Unit
 ) {
 
     val scaffoldState = rememberScaffoldState()
@@ -38,7 +40,7 @@ fun DiscoverScreen(
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = { AppBar(onRefreshRequested, discoverViewState.loadingState) },
-        content = { Content(discoverViewState) }
+        content = { Content(discoverViewState, onSelectItem) }
     )
 }
 
@@ -63,7 +65,7 @@ private fun AppBar(onRefreshRequested: () -> Unit, loadingState: Boolean) {
 }
 
 @Composable
-private fun Content(discoverViewState: DiscoverViewState) {
+private fun Content(discoverViewState: DiscoverViewState, onSelectItem: (device: Device) -> Unit) {
     if (discoverViewState.devices.isEmpty() && discoverViewState.loadingState.not()) {
         DiscoverEmptyState()
     }
@@ -82,6 +84,7 @@ private fun Content(discoverViewState: DiscoverViewState) {
                             shape = RoundedCornerShape(SPACING_SMALL)
                         )
                         .padding(horizontal = SPACING_SMALL * 2, vertical = SPACING_SMALL)
+                        .clickable { onSelectItem(item) }
                 ) {
                     Text(
                         text = item.name,
@@ -138,7 +141,7 @@ private fun DarkPreview() {
     )
 
     IOTCommanderTheme(darkTheme = true) {
-        DiscoverScreen(DiscoverViewState(devices = devices, false)) {}
+        DiscoverScreen(DiscoverViewState(devices = devices, false), {}, {})
     }
 }
 
@@ -151,7 +154,7 @@ private fun LightPreview() {
     )
 
     IOTCommanderTheme(darkTheme = false) {
-        DiscoverScreen(DiscoverViewState(devices = devices, false)) {}
+        DiscoverScreen(DiscoverViewState(devices = devices, false), {}, {})
     }
 }
 
@@ -159,6 +162,6 @@ private fun LightPreview() {
 @Preview
 private fun EmptyStatePreview() {
     IOTCommanderTheme(darkTheme = true) {
-        DiscoverScreen(DiscoverViewState(devices = emptyList(), false)) {}
+        DiscoverScreen(DiscoverViewState(devices = emptyList(), false), {}, {})
     }
 }

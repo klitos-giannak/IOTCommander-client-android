@@ -32,4 +32,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun searchForDevices() {
         deviceDiscoverer.invokeSearch()
     }
+
+    fun selectDevice(device: Device) {
+        // TODO
+    }
 }

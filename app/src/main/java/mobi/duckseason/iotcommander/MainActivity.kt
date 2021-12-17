@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
             IOTCommanderTheme {
                 NavHost(navController = navController, startDestination = NavRoutes.START.name) {
                     composable(NavRoutes.START.name) {
-                        DiscoverScreen(discoverViewState)
+                        DiscoverScreen(discoverViewState, { viewModel.searchForDevices() })
                     }
                 }
             }

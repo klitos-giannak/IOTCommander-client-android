@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -27,10 +28,13 @@ class DeviceDiscoverer(private val appContext: Context) {
 
     private val devices = mutableSetOf<Device>()
 
-    private val _devicesFlow = MutableStateFlow(devices)
-    val devicesFlow = _devicesFlow.asStateFlow()
+    private val _devicesFlow: MutableStateFlow<Set<Device>> = MutableStateFlow(devices.toSet())
+    val devicesFlow: StateFlow<Set<Device>> = _devicesFlow.asStateFlow()
+    private val _searching = MutableStateFlow(false)
+    val searching = _searching.asStateFlow()
 
     fun invokeSearch() = thread(name = TAG) {
+        _searching.value = true
 
         val datagramSocket = try {
             DatagramSocket().apply {
@@ -69,7 +73,7 @@ class DeviceDiscoverer(private val appContext: Context) {
                 decodeFromString?.let { discoverResponse ->
                     receiver.address.hostAddress?.let { ipAddress ->
                         devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
-                        _devicesFlow.tryEmit(devices)
+                        _devicesFlow.tryEmit(devices.toSet())
                     }
                 }
 
@@ -79,6 +83,7 @@ class DeviceDiscoverer(private val appContext: Context) {
                     Log.e(TAG, "Receiving Thread interrupted", ex)
                 }
             }
+            _searching.value = false
         }
     }
 

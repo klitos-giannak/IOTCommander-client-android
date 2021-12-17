@@ -16,7 +16,7 @@ import kotlin.math.pow
 
 private const val LOCATOR_MESSAGE = "{\"action\":\"discover\"}"
 private const val DISCOVERY_PORT = 9977
-private const val SEARCH_DURATION_MILLIS = 5000
+private const val SEARCH_DURATION_MILLIS = 5000L
 private const val SEARCH_INTERVAL_MILLIS = 500L
 private const val RECEIVE_BUFFER_SIZE = 1500
 
@@ -57,7 +57,7 @@ class DeviceDiscoverer(private val appContext: Context) {
                     socket.receive(receiver)
                     val received = String(buffer, 0, receiver.length)
                     Log.d(TAG, "Received: $received")
-                    Json.decodeFromString(Device.serializer(), received)
+                    Json.decodeFromString(DiscoverResponse.serializer(), received)
                 } catch (ex: IOException) {
                     Log.e(TAG, "Error while Receiving packet", ex)
                     null
@@ -66,9 +66,11 @@ class DeviceDiscoverer(private val appContext: Context) {
                     null
                 }
 
-                decodeFromString?.let {
-                    devices.add(it)
-                    _devicesFlow.value = devices
+                decodeFromString?.let { discoverResponse ->
+                    receiver.address.hostAddress?.let { ipAddress ->
+                        devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
+                        _devicesFlow.tryEmit(devices)
+                    }
                 }
 
                 try {

@@ -2,7 +2,6 @@ package mobi.duckseason.iotcommander.discover
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -13,7 +12,6 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
             invokeSearch()
         }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     val discoverViewState: Flow<DiscoverViewState> =
         with(deviceDiscoverer) {
             devicesFlow.combine(searching) { devices: Set<Device>, loading: Boolean ->
@@ -23,5 +21,10 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
 
     fun searchForDevices() {
         deviceDiscoverer.invokeSearch()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        deviceDiscoverer.onTerminate()
     }
 }

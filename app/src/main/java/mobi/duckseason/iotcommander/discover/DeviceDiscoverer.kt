@@ -33,63 +33,72 @@ class DeviceDiscoverer(private val appContext: Context) {
     private val _searching = MutableStateFlow(false)
     val searching = _searching.asStateFlow()
 
+    private var discoverThread: Thread? = null
+
     private fun resetFound() {
         devices.clear()
         _devicesFlow.value = devices.toSet()
     }
 
-    fun invokeSearch() = thread(name = TAG) {
-        resetFound()
-        _searching.value = true
-
-        val datagramSocket = try {
-            DatagramSocket().apply {
-                broadcast = true
-                soTimeout = 3000
-            }
-        } catch (ex: SocketException) {
-            Log.e(TAG, "Unable to create UDP Socket", ex)
-            null
+    fun invokeSearch() {
+        if (discoverThread?.isAlive == true) {
+            // discover is already running, bail
+            return
         }
 
-        datagramSocket?.use { socket ->
-            val packet = createOutgoingPacket()
+        discoverThread = thread(name = TAG) {
+            resetFound()
+            _searching.value = true
 
-            val searchUntil = System.currentTimeMillis() + SEARCH_DURATION_MILLIS
-
-            while (System.currentTimeMillis() < searchUntil) {
-                socket.send(packet)
-
-                val buffer = ByteArray(RECEIVE_BUFFER_SIZE)
-                val receiver = DatagramPacket(buffer, buffer.size)
-
-                val decodeFromString = try {
-                    socket.receive(receiver)
-                    val received = String(buffer, 0, receiver.length)
-                    Log.d(TAG, "Received: $received")
-                    Json.decodeFromString(DiscoverResponse.serializer(), received)
-                } catch (ex: IOException) {
-                    Log.e(TAG, "Error while Receiving packet", ex)
-                    null
-                } catch (ex: SerializationException) {
-                    Log.d(TAG, "Unable to parse received packet into a Device")
-                    null
+            val datagramSocket = try {
+                DatagramSocket().apply {
+                    broadcast = true
+                    soTimeout = 3000
                 }
+            } catch (ex: SocketException) {
+                Log.e(TAG, "Unable to create UDP Socket", ex)
+                null
+            }
 
-                decodeFromString?.let { discoverResponse ->
-                    receiver.address.hostAddress?.let { ipAddress ->
-                        devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
-                        _devicesFlow.tryEmit(devices.toSet())
+            datagramSocket?.use { socket ->
+                val packet = createOutgoingPacket()
+
+                val searchUntil = System.currentTimeMillis() + SEARCH_DURATION_MILLIS
+
+                while (System.currentTimeMillis() < searchUntil) {
+                    socket.send(packet)
+
+                    val buffer = ByteArray(RECEIVE_BUFFER_SIZE)
+                    val receiver = DatagramPacket(buffer, buffer.size)
+
+                    val decodeFromString = try {
+                        socket.receive(receiver)
+                        val received = String(buffer, 0, receiver.length)
+                        Log.d(TAG, "Received: $received")
+                        Json.decodeFromString(DiscoverResponse.serializer(), received)
+                    } catch (ex: IOException) {
+                        Log.e(TAG, "Error while Receiving packet", ex)
+                        null
+                    } catch (ex: SerializationException) {
+                        Log.d(TAG, "Unable to parse received packet into a Device")
+                        null
+                    }
+
+                    decodeFromString?.let { discoverResponse ->
+                        receiver.address.hostAddress?.let { ipAddress ->
+                            devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
+                            _devicesFlow.tryEmit(devices.toSet())
+                        }
+                    }
+
+                    try {
+                        Thread.sleep(SEARCH_INTERVAL_MILLIS)
+                    } catch (ex: InterruptedException) {
+                        Log.e(TAG, "Receiving Thread interrupted", ex)
                     }
                 }
-
-                try {
-                    Thread.sleep(SEARCH_INTERVAL_MILLIS)
-                } catch (ex: InterruptedException) {
-                    Log.e(TAG, "Receiving Thread interrupted", ex)
-                }
+                _searching.value = false
             }
-            _searching.value = false
         }
     }
 
@@ -151,5 +160,9 @@ class DeviceDiscoverer(private val appContext: Context) {
 //            e.printStackTrace()
 //            null
 //        }
+    }
+
+    fun onTerminate() {
+        discoverThread?.interrupt()
     }
 }

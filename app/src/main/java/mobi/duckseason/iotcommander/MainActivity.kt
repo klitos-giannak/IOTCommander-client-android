@@ -13,25 +13,32 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import mobi.duckseason.iotcommander.control.ControlViewModel
+import mobi.duckseason.iotcommander.discover.Device
 import mobi.duckseason.iotcommander.discover.DiscoverScreen
+import mobi.duckseason.iotcommander.discover.DiscoverViewModel
 import mobi.duckseason.iotcommander.discover.DiscoverViewState
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var viewModel: MainViewModel
+    private lateinit var navigationVM: NavigationViewModel
+    private lateinit var discoverVM: DiscoverViewModel
+    private lateinit var controlVM: ControlViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        navigationVM = ViewModelProvider(this)[NavigationViewModel::class.java]
+        discoverVM = ViewModelProvider(this)[DiscoverViewModel::class.java]
+        controlVM = ViewModelProvider(this)[ControlViewModel::class.java]
 
         setContent {
             val scope = rememberCoroutineScope()
             val navController = rememberNavController()
 
-            remember(viewModel.navigation, this) {
-                viewModel.navigation.flowWithLifecycle(lifecycle)
+            remember(navigationVM.navigation, this) {
+                navigationVM.navigation.flowWithLifecycle(lifecycle)
             }.onEach { route ->
                 when (route) {
                     NavRoutes.BACK -> {
@@ -41,8 +48,8 @@ class MainActivity : ComponentActivity() {
                 }
             }.launchIn(scope)
 
-            val discoverViewState = remember(viewModel.discoverViewState, this) {
-                viewModel.discoverViewState.flowWithLifecycle(lifecycle)
+            val discoverViewState = remember(discoverVM.discoverViewState, this) {
+                discoverVM.discoverViewState.flowWithLifecycle(lifecycle)
             }.collectAsState(DiscoverViewState.EMPTY)
 
             IOTCommanderTheme {
@@ -50,8 +57,8 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.DISCOVER.name) {
                         DiscoverScreen(
                             discoverViewState.value,
-                            { viewModel.searchForDevices() },
-                            { device -> viewModel.selectDevice(device) }
+                            { discoverVM.searchForDevices() },
+                            { device -> controlVM.selectDevice(device) }
                         )
                     }
                 }
@@ -60,6 +67,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() {
-        viewModel.onBackNavigation()
+        navigationVM.onBackNavigation()
     }
 }

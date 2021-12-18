@@ -12,4 +12,8 @@ class NavigationViewModel : ViewModel() {
     fun onBackNavigation() {
         _navigation.trySend(NavRoutes.BACK)
     }
+
+    fun navigateTo(route: NavRoutes) {
+        _navigation.trySend(route)
+    }
 }

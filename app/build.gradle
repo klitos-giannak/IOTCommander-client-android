@@ -60,6 +60,7 @@ dependencies {
     implementation 'androidx.activity:activity-compose:1.4.0'
     implementation "androidx.navigation:navigation-compose:$navigation_compose_version"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinx_json_version"
+    implementation"com.android.volley:volley:$volley_version"
 
     testImplementation "junit:junit:$junit_version"
 

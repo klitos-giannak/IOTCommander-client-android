@@ -13,8 +13,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import mobi.duckseason.iotcommander.control.ControlScreen
 import mobi.duckseason.iotcommander.control.ControlViewModel
-import mobi.duckseason.iotcommander.discover.Device
+import mobi.duckseason.iotcommander.control.ControlViewState
 import mobi.duckseason.iotcommander.discover.DiscoverScreen
 import mobi.duckseason.iotcommander.discover.DiscoverViewModel
 import mobi.duckseason.iotcommander.discover.DiscoverViewState
@@ -52,14 +53,24 @@ class MainActivity : ComponentActivity() {
                 discoverVM.discoverViewState.flowWithLifecycle(lifecycle)
             }.collectAsState(DiscoverViewState.EMPTY)
 
+            val controlViewState = remember(controlVM.controlViewState, this) {
+                controlVM.controlViewState.flowWithLifecycle(lifecycle)
+            }.collectAsState(ControlViewState.EMPTY)
+
             IOTCommanderTheme {
                 NavHost(navController = navController, startDestination = NavRoutes.DISCOVER.name) {
                     composable(NavRoutes.DISCOVER.name) {
                         DiscoverScreen(
                             discoverViewState.value,
                             { discoverVM.searchForDevices() },
-                            { device -> controlVM.selectDevice(device) }
+                            { device ->
+                                controlVM.selectDevice(device)
+                                navigationVM.navigateTo(NavRoutes.CONTROL)
+                            }
                         )
+                    }
+                    composable(NavRoutes.CONTROL.name) {
+                        ControlScreen(controlViewState.value)
                     }
                 }
             }

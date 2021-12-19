@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.combine
 import mobi.duckseason.iotcommander.discover.Device
 
 private val TAG = ControlViewModel::class.java.simpleName
-private val COMMANDS_HELP_ENDPOINT = "/commands"
+private const val COMMANDS_HELP_ENDPOINT = "/commands"
 
 class ControlViewModel(application: Application) : AndroidViewModel(application) {
 

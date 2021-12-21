@@ -6,4 +6,8 @@
     <string name="discover_empty_state_message">No Devices Found 😞</string>
     <string name="discover_empty_state_description">Make sure you\'re connected to the same network as your device(s) and refresh.</string>
 
+    <string name="control_empty_state_message">No Supported Commands 😞</string>
+    <string name="control_empty_state_description">The device has not returned any valid commands. Check the device configuration</string>
+    <string name="control_button_send">Send</string>
+
 </resources>

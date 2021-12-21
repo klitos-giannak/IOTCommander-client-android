@@ -70,7 +70,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable(NavRoutes.CONTROL.name) {
-                        ControlScreen(controlViewState.value)
+                        ControlScreen(
+                            controlViewState.value,
+                            { commandDescription ->
+                                controlVM.toggleExpanded(commandDescription)
+                            },
+                            {}
+                        )
                     }
                 }
             }

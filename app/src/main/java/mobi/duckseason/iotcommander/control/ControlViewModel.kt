@@ -10,6 +10,10 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import mobi.duckseason.iotcommander.discover.Device
 
 private val TAG = ControlViewModel::class.java.simpleName
@@ -17,13 +21,25 @@ private const val COMMANDS_HELP_ENDPOINT = "/commands"
 
 class ControlViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val expandedCommands: MutableList<CommandDescription> = mutableListOf()
+
     private val selectedDeviceFlow = MutableStateFlow<Device?>(null)
-    private val outputFlow = MutableStateFlow("")
+    private val supportedCommandsFlow = MutableStateFlow<List<CommandDescription>>(emptyList())
+    private val expandedCommandsFlow = MutableStateFlow<List<CommandDescription>>(emptyList())
+
 
     private var requestQueue: RequestQueue = Volley.newRequestQueue(getApplication())
 
-    val controlViewState= selectedDeviceFlow.combine(outputFlow) { device: Device?, output: String ->
-        ControlViewState(device, output)
+    val controlViewState = combine(selectedDeviceFlow, supportedCommandsFlow, expandedCommandsFlow)
+    { device, commands, expandedCommands ->
+        ControlViewState(device, commands, expandedCommands)
+    }
+
+    fun toggleExpanded(commandDescription: CommandDescription) {
+        if(expandedCommands.remove(commandDescription).not()) {
+            expandedCommands.add(commandDescription)
+        }
+        expandedCommandsFlow.tryEmit(expandedCommands.toList())
     }
 
     fun selectDevice(device: Device) {
@@ -34,7 +50,10 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
         val stringRequest = StringRequest(
             Request.Method.GET, url,
             { response: String ->
-                outputFlow.value = response
+
+                val commandsList = parseSupportedCommandsJson(response)
+
+                supportedCommandsFlow.value = commandsList
             },
             { volleyError: VolleyError? ->
                 Log.e(TAG, "Error trying: url", volleyError)
@@ -44,6 +63,28 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
         // Add the request to the RequestQueue.
         requestQueue.add(stringRequest)
     }
+
+    private fun parseSupportedCommandsJson(response: String) =
+        Json.decodeFromString(JsonObject.serializer(), response)
+            .map { command ->
+                val params = (command.value as JsonObject)
+                    .map { param ->
+                        val paramType = (param.value as? JsonPrimitive).let {
+                            if (it == null || it.isString.not()) {
+                                throw SerializationException()
+                            } else {
+                                ParameterType.fromInternalValue(it.content)
+                            }
+                        }
+
+                        if (paramType == null) {
+                            throw SerializationException()
+                        } else {
+                            ParameterDescription(param.key, paramType)
+                        }
+                    }
+                CommandDescription(command.key, params)
+            }
 
     override fun onCleared() {
         super.onCleared()

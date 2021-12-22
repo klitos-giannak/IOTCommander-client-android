@@ -18,6 +18,7 @@ import mobi.duckseason.iotcommander.discover.Device
 
 private val TAG = ControlViewModel::class.java.simpleName
 private const val COMMANDS_HELP_ENDPOINT = "/commands"
+private const val COMMAND_ENDPOINT = "/command"
 
 class ControlViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -57,6 +58,7 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             },
             { volleyError: VolleyError? ->
                 Log.e(TAG, "Error trying: url", volleyError)
+                //TODO show network related error?
             }
         )
 
@@ -85,6 +87,73 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
                     }
                 CommandDescription(command.key, params)
             }
+
+    fun onOutGoingCommand(outGoingCommand: OutGoingCommand) {
+        if (validateParams(outGoingCommand.paramsValues)) {
+            sendCommand(outGoingCommand)
+        } else {
+            //TODO show validation error?
+        }
+    }
+
+    private fun sendCommand(outGoingCommand: OutGoingCommand) {
+        selectedDeviceFlow.value?.let { device ->
+            val url = "http://${device.ip}:${device.port}$COMMAND_ENDPOINT/${outGoingCommand.command.name}"
+                .let {
+                    if (outGoingCommand.paramsValues.isEmpty()) {
+                        Log.d(TAG, "empty params")
+                        it
+                    } else {
+                        Log.d(TAG, "found ${outGoingCommand.paramsValues.size} params")
+                        StringBuilder(it)
+                            .apply {
+                                append("?")
+
+                                //add all parameters to the url
+                                outGoingCommand.paramsValues.forEach { (param, value) ->
+                                    append("&${param.name}=$value")
+                                }
+
+
+                            }
+                            //now remove the ampersand before the first parameter
+                            .replace(Regex.fromLiteral("?&"), "?")
+                    }
+                }
+
+            Log.d(TAG, "Request: $url")
+
+            // Request a string response from the provided URL.
+            val stringRequest = StringRequest(
+                Request.Method.GET, url,
+                { response: String ->
+                    Log.d(TAG, "Response: $response")
+                },
+                { volleyError: VolleyError? ->
+                    Log.e(TAG, "Error trying: url", volleyError)
+                    //TODO show network related error?
+                }
+            )
+
+            // Add the request to the RequestQueue.
+            requestQueue.add(stringRequest)
+        }
+//            ?: TODO show unexpected error?
+
+    }
+
+    private fun validateParams(paramsValues: Map<ParameterDescription, Any?>): Boolean {
+        // filter non validated values. We expect the size to be 0
+        return paramsValues
+            .filter { entry ->
+                val isValid = entry.value?.let {
+                    entry.key.type.validate(it)
+                } ?: false
+
+                !isValid
+            }
+            .isEmpty()
+    }
 
     override fun onCleared() {
         super.onCleared()

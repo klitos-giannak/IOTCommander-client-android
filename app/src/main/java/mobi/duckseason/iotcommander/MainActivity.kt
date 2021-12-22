@@ -75,7 +75,9 @@ class MainActivity : ComponentActivity() {
                             { commandDescription ->
                                 controlVM.toggleExpanded(commandDescription)
                             },
-                            {}
+                            { outGoingCommand ->
+                                controlVM.onOutGoingCommand(outGoingCommand)
+                            }
                         )
                     }
                 }

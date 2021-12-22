@@ -42,3 +42,5 @@ data class CommandDescription(
     val name: String,
     val params: List<ParameterDescription> = emptyList()
 )
+
+data class OutGoingCommand(val command: CommandDescription, val paramsValues: Map<ParameterDescription, Any?> = emptyMap())

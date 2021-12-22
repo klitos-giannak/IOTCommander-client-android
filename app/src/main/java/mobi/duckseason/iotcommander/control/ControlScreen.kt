@@ -314,36 +314,46 @@ private fun ControlEmptyState() {
     }
 }
 
+private val previewCommand2 = CommandDescription(
+    "test-Collapsed",
+    listOf(
+        ParameterDescription("myString", ParameterType.TEXT),
+    )
+)
+
+private val previewCommand3 = CommandDescription(
+    "testAll-Expanded",
+    listOf(
+        ParameterDescription("myString", ParameterType.TEXT),
+        ParameterDescription("myInt", ParameterType.INT),
+        ParameterDescription("myFloat", ParameterType.FLOAT),
+        ParameterDescription("myBoolean", ParameterType.BOOLEAN),
+    )
+)
+
+private val previewViewState = ControlViewState(
+    device = Device(name = "MyDevice", ""),
+    commands = listOf(
+        CommandDescription("testNoParams", emptyList()),
+        previewCommand2,
+        previewCommand3
+    ),
+    listOf(previewCommand3)
+)
+
 @Composable
 @Preview
 private fun DarkPreview() {
-    val command2 = CommandDescription(
-        "test-Collapsed",
-        listOf(
-            ParameterDescription("myString", ParameterType.TEXT),
-        )
-    )
-    val command3 = CommandDescription(
-        "testAll-Expanded",
-        listOf(
-            ParameterDescription("myString", ParameterType.TEXT),
-            ParameterDescription("myInt", ParameterType.INT),
-            ParameterDescription("myFloat", ParameterType.FLOAT),
-            ParameterDescription("myBoolean", ParameterType.BOOLEAN),
-        )
-    )
-    val viewState = ControlViewState(
-        device = Device(name = "MyDevice", ""),
-        commands = listOf(
-            CommandDescription("testNoParams", emptyList()),
-            command2,
-            command3
-        ),
-        listOf(command3)
-    )
-
     IOTCommanderTheme(darkTheme = true) {
-        ControlScreen(viewState, {}, {})
+        ControlScreen(previewViewState, {}, {})
+    }
+}
+
+@Composable
+@Preview
+private fun LightPreview() {
+    IOTCommanderTheme(darkTheme = false) {
+        ControlScreen(previewViewState, {}, {})
     }
 }
 

@@ -132,29 +132,24 @@ private fun DiscoverEmptyState() {
     }
 }
 
+private val previewDevices = listOf(
+    Device("Door Handler", "192.168.1.145"),
+    Device("Thermostat", "192.168.1.190")
+)
+
 @Composable
 @Preview
 private fun DarkPreview() {
-    val devices = listOf(
-        Device("Door Handler", "192.168.1.145"),
-        Device("Thermostat", "192.168.1.190")
-    )
-
     IOTCommanderTheme(darkTheme = true) {
-        DiscoverScreen(DiscoverViewState(devices = devices, false), {}, {})
+        DiscoverScreen(DiscoverViewState(devices = previewDevices, false), {}, {})
     }
 }
 
 @Composable
 @Preview
 private fun LightPreview() {
-    val devices = listOf(
-        Device("Door Handler", "192.168.1.145"),
-        Device("Thermostat", "192.168.1.190")
-    )
-
     IOTCommanderTheme(darkTheme = false) {
-        DiscoverScreen(DiscoverViewState(devices = devices, false), {}, {})
+        DiscoverScreen(DiscoverViewState(devices = previewDevices, false), {}, {})
     }
 }
 

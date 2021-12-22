@@ -9,5 +9,7 @@
     <string name="control_empty_state_message">No Supported Commands 😞</string>
     <string name="control_empty_state_description">The device has not returned any valid commands. Check the device configuration</string>
     <string name="control_button_send">Send</string>
+    <string name="control_option_true">True</string>
+    <string name="control_option_false">False</string>
 
 </resources>

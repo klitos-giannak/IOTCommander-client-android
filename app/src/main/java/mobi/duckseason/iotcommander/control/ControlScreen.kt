@@ -6,14 +6,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -21,12 +29,16 @@ import iotcommander.R
 import mobi.duckseason.iotcommander.discover.Device
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
 
+private val SPACING_TINY = 2.dp
 private val SPACING_SMALL = 10.dp
 private val SPACING_HUGE = 32.dp
 private val SPACING_ENORMOUS = 64.dp
 
 private val CORNER_RADIOUS_SMALL = 4.dp
 private val CORNER_RADIOUS_LARGE = 10.dp
+
+private val PARAM_NAME_WEIGHT = 0.4f
+private val PARAM_ENTRY_WEIGHT = 0.6f
 
 @Composable
 fun ControlScreen(
@@ -143,24 +155,38 @@ private fun ParamsBox(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(SPACING_SMALL, 0.dp),
+            .padding(horizontal = SPACING_SMALL, vertical = 0.dp),
         elevation = 4.dp,
         shape = RoundedCornerShape(CORNER_RADIOUS_SMALL)
     ) {
-        Column {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(SPACING_SMALL)
+        ) {
             commandDescription.params.forEach { param ->
-                Text(
-                    text = param.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = SPACING_SMALL * 2, vertical = SPACING_SMALL)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 0.dp, vertical = SPACING_SMALL),
+                    verticalAlignment = CenterVertically
+                ) {
+                    Text(
+                        text = param.name,
+                        modifier = Modifier.weight(PARAM_NAME_WEIGHT)
+                    )
+
+                    val valueEntryModifier = Modifier.weight(PARAM_ENTRY_WEIGHT)
+                    when (param.type) {
+                        ParameterType.BOOLEAN -> ParamsEntryBoolean(modifier = valueEntryModifier)
+                        ParameterType.INT -> ParamsEntryNumber(modifier = valueEntryModifier)
+                        ParameterType.FLOAT -> ParamsEntryNumber(modifier = valueEntryModifier)
+                        ParameterType.TEXT -> ParamsEntryText(modifier = valueEntryModifier)
+                    }
+                }
+
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(SPACING_SMALL),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 SendButton(
@@ -169,6 +195,66 @@ private fun ParamsBox(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ParamsEntryText(modifier: Modifier) {
+    val state = remember { mutableStateOf(TextFieldValue()) }
+    TextField(
+        value = state.value,
+        onValueChange = { newState: TextFieldValue -> state.value = newState },
+        modifier = modifier,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.None,
+            keyboardType = KeyboardType.Text,
+            autoCorrect = false,
+            imeAction = ImeAction.Next
+        )
+    )
+}
+
+@Composable
+private fun ParamsEntryNumber(modifier: Modifier) {
+    val state = remember { mutableStateOf(TextFieldValue()) }
+    TextField(
+        value = state.value,
+        onValueChange = { newState: TextFieldValue -> state.value = newState },
+        modifier = modifier,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next
+        )
+    )
+}
+
+@Composable
+private fun ParamsEntryBoolean(modifier: Modifier) {
+    val state = remember { mutableStateOf<Boolean?>(null) }
+
+    Row(modifier = modifier) {
+        Spacer(modifier = Modifier.weight(1f))
+        RadioButton(
+            selected = state.value == true,
+            onClick = { state.value = true }
+        )
+        Text(
+            text = stringResource(R.string.control_option_true),
+            style = MaterialTheme.typography.body1.merge(),
+            modifier = Modifier.padding(horizontal = SPACING_TINY)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        RadioButton(
+            selected = state.value == false,
+            onClick = { state.value = false }
+        )
+        Text(
+            text = stringResource(R.string.control_option_false),
+            style = MaterialTheme.typography.body1.merge(),
+            modifier = Modifier.padding(horizontal = SPACING_TINY)
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
@@ -226,7 +312,7 @@ private fun DarkPreview() {
             command2,
             command3
         ),
-        listOf(command2, command3)
+        listOf(command3)
     )
 
     IOTCommanderTheme(darkTheme = true) {

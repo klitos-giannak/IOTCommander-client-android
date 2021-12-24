@@ -17,6 +17,7 @@
     <style name="Theme.IOTCommander.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">adjustResize|stateHidden</item>
     </style>
 
     <style name="Theme.IOTCommander.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />

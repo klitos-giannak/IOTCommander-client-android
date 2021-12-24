@@ -1,10 +1,13 @@
 package mobi.duckseason.iotcommander.control
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -14,6 +17,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -23,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import iotcommander.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import mobi.duckseason.iotcommander.discover.Device
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
 
@@ -41,7 +49,8 @@ private const val PARAM_ENTRY_WEIGHT = 0.6f
 fun ControlScreen(
     viewState: ControlViewState,
     onToggleExpanded: (commandDescription: CommandDescription) -> Unit,
-    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit
+    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit,
+    scope: CoroutineScope
 ) {
     val scaffoldState = rememberScaffoldState()
 
@@ -52,7 +61,8 @@ fun ControlScreen(
             Content(
                 viewState,
                 onToggleExpanded,
-                onOutGoingCommand
+                onOutGoingCommand,
+                scope
             )
         }
     )
@@ -73,7 +83,8 @@ private fun AppBar(deviceName: String?) {
 private fun Content(
     viewState: ControlViewState,
     onCommandToggleExpanded: (commandDescription: CommandDescription) -> Unit,
-    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit
+    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit,
+    scope: CoroutineScope
 ) {
     if (viewState.commands.isEmpty()) {
         ControlEmptyState()
@@ -88,7 +99,8 @@ private fun Content(
                 commandDescription = item,
                 isExpanded = viewState.expandedCommands.contains(item),
                 onCommandToggleExpanded,
-                onOutGoingCommand
+                onOutGoingCommand,
+                scope
             )
         }
     }
@@ -99,7 +111,8 @@ private fun Command(
     commandDescription: CommandDescription,
     isExpanded: Boolean,
     onToggleExpanded: (commandDescription: CommandDescription) -> Unit,
-    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit
+    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit,
+    scope: CoroutineScope
 ) {
     Column {
         Row(
@@ -138,7 +151,7 @@ private fun Command(
         }
 
         if (isExpanded) {
-            ParamsBox(commandDescription, onOutGoingCommand)
+            ParamsBox(commandDescription, onOutGoingCommand, scope)
         }
 
     }
@@ -147,7 +160,8 @@ private fun Command(
 @Composable
 private fun ParamsBox(
     commandDescription: CommandDescription,
-    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit
+    onOutGoingCommand: (outGoingCommand: OutGoingCommand) -> Unit,
+    scope: CoroutineScope
 ) {
     Surface(
         modifier = Modifier
@@ -187,7 +201,8 @@ private fun ParamsBox(
                             paramsStateMap[param] = state
                             ParamsEntryNumber(
                                 modifier = valueEntryModifier,
-                                state = state
+                                state = state,
+                                scope = scope
                             )
                         }
                         ParameterType.FLOAT -> {
@@ -195,7 +210,8 @@ private fun ParamsBox(
                             paramsStateMap[param] = state
                             ParamsEntryNumber(
                                 modifier = valueEntryModifier,
-                                state = state
+                                state = state,
+                                scope = scope
                             )
                         }
                         ParameterType.TEXT -> {
@@ -203,7 +219,8 @@ private fun ParamsBox(
                             paramsStateMap[param] = state
                             ParamsEntryText(
                                 modifier = valueEntryModifier,
-                                state = state
+                                state = state,
+                                scope = scope
                             )
                         }
                     }
@@ -230,12 +247,28 @@ private fun ParamsBox(
     }
 }
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ParamsEntryText(modifier: Modifier, state: MutableState<TextFieldValue>) {
+private fun ParamsEntryText(
+    modifier: Modifier,
+    state: MutableState<TextFieldValue>,
+    scope: CoroutineScope
+) {
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     TextField(
         value = state.value,
         onValueChange = { newState: TextFieldValue -> state.value = newState },
-        modifier = modifier,
+        modifier = modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusEvent {
+                if (it.isFocused) {
+                    scope.launch {
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                }
+            },
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.None,
             keyboardType = KeyboardType.Text,
@@ -245,12 +278,27 @@ private fun ParamsEntryText(modifier: Modifier, state: MutableState<TextFieldVal
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ParamsEntryNumber(modifier: Modifier, state: MutableState<TextFieldValue>) {
+private fun ParamsEntryNumber(
+    modifier: Modifier,
+    state: MutableState<TextFieldValue>,
+    scope: CoroutineScope
+) {
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     TextField(
         value = state.value,
         onValueChange = { newState: TextFieldValue -> state.value = newState },
-        modifier = modifier,
+        modifier = modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusEvent {
+                if (it.isFocused) {
+                    scope.launch {
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                }
+            },
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Number,
             imeAction = ImeAction.Next
@@ -345,7 +393,7 @@ private val previewViewState = ControlViewState(
 @Preview
 private fun DarkPreview() {
     IOTCommanderTheme(darkTheme = true) {
-        ControlScreen(previewViewState, {}, {})
+        ControlScreen(previewViewState, {}, {}, rememberCoroutineScope())
     }
 }
 
@@ -353,7 +401,7 @@ private fun DarkPreview() {
 @Preview
 private fun LightPreview() {
     IOTCommanderTheme(darkTheme = false) {
-        ControlScreen(previewViewState, {}, {})
+        ControlScreen(previewViewState, {}, {}, rememberCoroutineScope())
     }
 }
 
@@ -366,7 +414,9 @@ private fun EmptyStatePreview() {
                 device = Device(name = "MyDevice", ""),
                 commands = emptyList()
             ),
-            {}, {}
+            {},
+            {},
+            rememberCoroutineScope()
         )
     }
 }

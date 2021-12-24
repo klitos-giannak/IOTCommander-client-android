@@ -8,6 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -27,6 +29,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var discoverVM: DiscoverViewModel
     private lateinit var controlVM: ControlViewModel
 
+    private lateinit var navController: NavHostController
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -34,20 +37,18 @@ class MainActivity : ComponentActivity() {
         discoverVM = ViewModelProvider(this)[DiscoverViewModel::class.java]
         controlVM = ViewModelProvider(this)[ControlViewModel::class.java]
 
+        navigationVM.navigation.onEach { route ->
+            when (route) {
+                NavRoutes.BACK -> {
+                    if (!navController.popBackStack()) finish()
+                }
+                else -> navController.navigate(route.name)
+            }
+        }.launchIn(lifecycleScope)
+
         setContent {
             val scope = rememberCoroutineScope()
-            val navController = rememberNavController()
-
-            remember(navigationVM.navigation, this) {
-                navigationVM.navigation.flowWithLifecycle(lifecycle)
-            }.onEach { route ->
-                when (route) {
-                    NavRoutes.BACK -> {
-                        if (!navController.popBackStack()) finish()
-                    }
-                    else -> navController.navigate(route.name)
-                }
-            }.launchIn(scope)
+            navController = rememberNavController()
 
             val discoverViewState = remember(discoverVM.discoverViewState, this) {
                 discoverVM.discoverViewState.flowWithLifecycle(lifecycle)
@@ -77,7 +78,8 @@ class MainActivity : ComponentActivity() {
                             },
                             { outGoingCommand ->
                                 controlVM.onOutGoingCommand(outGoingCommand)
-                            }
+                            },
+                            scope
                         )
                     }
                 }

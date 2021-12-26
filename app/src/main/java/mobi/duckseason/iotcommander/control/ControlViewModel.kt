@@ -2,7 +2,6 @@ package mobi.duckseason.iotcommander.control
 
 import android.app.Application
 import android.util.Log
-import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import com.android.volley.Request
 import com.android.volley.RequestQueue
@@ -25,6 +24,8 @@ private const val COMMANDS_HELP_ENDPOINT = "/commands"
 private const val COMMAND_ENDPOINT = "/command"
 
 class ControlViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val resources = application.resources
 
     private val expandedCommands: MutableList<CommandDescription> = mutableListOf()
 
@@ -64,7 +65,9 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             },
             { volleyError: VolleyError? ->
                 Log.e(TAG, "Error trying: url", volleyError)
-                userMessageChannel.trySend(resolveString(R.string.error_request_supported_commands))
+                userMessageChannel.trySend(
+                    resources.getString(R.string.error_request_supported_commands)
+                )
             }
         )
 
@@ -98,7 +101,9 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
         if (validateParams(outGoingCommand.paramsValues)) {
             sendCommand(outGoingCommand)
         } else {
-            userMessageChannel.trySend(resolveString(R.string.error_invalid_params))
+            userMessageChannel.trySend(
+                resources.getString(R.string.error_invalid_params)
+            )
         }
     }
 
@@ -138,7 +143,10 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
                 { volleyError: VolleyError? ->
                     Log.e(TAG, "Error trying: url", volleyError)
                     userMessageChannel.trySend(
-                        resolveString(R.string.error_request_command, outGoingCommand.command.name)
+                        resources.getString(
+                            R.string.error_request_command,
+                            "'${outGoingCommand.command.name}'"
+                        )
                     )
                 }
             )
@@ -146,7 +154,9 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             // Add the request to the RequestQueue.
             requestQueue.add(stringRequest)
         }
-            ?: userMessageChannel.trySend(resolveString(R.string.error_device_not_selected))
+            ?: userMessageChannel.trySend(
+                resources.getString(R.string.error_device_not_selected)
+            )
 
     }
 
@@ -162,9 +172,6 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             }
             .isEmpty()
     }
-
-    private fun resolveString(@StringRes id: Int, vararg formatArgs: Any) =
-        getApplication<Application>().resources.getString(id, formatArgs)
 
     override fun onCleared() {
         super.onCleared()

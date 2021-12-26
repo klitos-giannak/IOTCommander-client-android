@@ -12,4 +12,10 @@
     <string name="control_option_true">True</string>
     <string name="control_option_false">False</string>
 
+    <string name="error_request_supported_commands">Unable to get supported commands from device</string>
+    <string name="error_request_command">Error sending command %1$s to device</string>
+    <string name="error_invalid_params">Invalid parameters entered</string>
+    <string name="error_device_not_selected">Error: Device not selected</string>
+
+
 </resources>

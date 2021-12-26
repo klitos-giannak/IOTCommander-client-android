@@ -1,6 +1,7 @@
 package mobi.duckseason.iotcommander
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
@@ -37,14 +38,23 @@ class MainActivity : ComponentActivity() {
         discoverVM = ViewModelProvider(this)[DiscoverViewModel::class.java]
         controlVM = ViewModelProvider(this)[ControlViewModel::class.java]
 
-        navigationVM.navigation.onEach { route ->
-            when (route) {
-                NavRoutes.BACK -> {
-                    if (!navController.popBackStack()) finish()
+        navigationVM.navigation
+            .onEach { route ->
+                when (route) {
+                    NavRoutes.BACK -> {
+                        if (!navController.popBackStack()) finish()
+                    }
+                    else -> navController.navigate(route.name)
                 }
-                else -> navController.navigate(route.name)
             }
-        }.launchIn(lifecycleScope)
+            .launchIn(lifecycleScope)
+
+        controlVM.userMessageFlow
+            .onEach { message ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
+            .launchIn(lifecycleScope)
+
 
         setContent {
             val scope = rememberCoroutineScope()

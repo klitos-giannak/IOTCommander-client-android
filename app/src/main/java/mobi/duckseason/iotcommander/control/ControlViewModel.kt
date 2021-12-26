@@ -2,14 +2,18 @@ package mobi.duckseason.iotcommander.control
 
 import android.app.Application
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import iotcommander.R
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -28,8 +32,10 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
     private val supportedCommandsFlow = MutableStateFlow<List<CommandDescription>>(emptyList())
     private val expandedCommandsFlow = MutableStateFlow<List<CommandDescription>>(emptyList())
 
-
     private var requestQueue: RequestQueue = Volley.newRequestQueue(getApplication())
+
+    private val userMessageChannel = Channel<CharSequence>()
+    val userMessageFlow = userMessageChannel.receiveAsFlow()
 
     val controlViewState = combine(selectedDeviceFlow, supportedCommandsFlow, expandedCommandsFlow)
     { device, commands, expandedCommands ->
@@ -58,7 +64,7 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             },
             { volleyError: VolleyError? ->
                 Log.e(TAG, "Error trying: url", volleyError)
-                //TODO show network related error?
+                userMessageChannel.trySend(resolveString(R.string.error_request_supported_commands))
             }
         )
 
@@ -92,7 +98,7 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
         if (validateParams(outGoingCommand.paramsValues)) {
             sendCommand(outGoingCommand)
         } else {
-            //TODO show validation error?
+            userMessageChannel.trySend(resolveString(R.string.error_invalid_params))
         }
     }
 
@@ -131,14 +137,16 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
                 },
                 { volleyError: VolleyError? ->
                     Log.e(TAG, "Error trying: url", volleyError)
-                    //TODO show network related error?
+                    userMessageChannel.trySend(
+                        resolveString(R.string.error_request_command, outGoingCommand.command.name)
+                    )
                 }
             )
 
             // Add the request to the RequestQueue.
             requestQueue.add(stringRequest)
         }
-//            ?: TODO show unexpected error?
+            ?: userMessageChannel.trySend(resolveString(R.string.error_device_not_selected))
 
     }
 
@@ -154,6 +162,9 @@ class ControlViewModel(application: Application) : AndroidViewModel(application)
             }
             .isEmpty()
     }
+
+    private fun resolveString(@StringRes id: Int, vararg formatArgs: Any) =
+        getApplication<Application>().resources.getString(id, formatArgs)
 
     override fun onCleared() {
         super.onCleared()

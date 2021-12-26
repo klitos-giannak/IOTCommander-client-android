@@ -17,19 +17,16 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import iotcommander.R
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mobi.duckseason.iotcommander.discover.Device
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
@@ -197,25 +194,25 @@ private fun ParamsBox(
                             )
                         }
                         ParameterType.INT -> {
-                            val state = remember { mutableStateOf(TextFieldValue()) }
+                            val state: MutableState<Int?> = remember { mutableStateOf(null) }
                             paramsStateMap[param] = state
-                            ParamsEntryNumber(
+                            ParamsEntryInt(
                                 modifier = valueEntryModifier,
                                 state = state,
                                 scope = scope
                             )
                         }
                         ParameterType.FLOAT -> {
-                            val state = remember { mutableStateOf(TextFieldValue()) }
+                            val state: MutableState<Float?> = remember { mutableStateOf(null) }
                             paramsStateMap[param] = state
-                            ParamsEntryNumber(
+                            ParamsEntryFloat(
                                 modifier = valueEntryModifier,
                                 state = state,
                                 scope = scope
                             )
                         }
                         ParameterType.TEXT -> {
-                            val state = remember { mutableStateOf(TextFieldValue()) }
+                            val state: MutableState<String> = remember { mutableStateOf("") }
                             paramsStateMap[param] = state
                             ParamsEntryText(
                                 modifier = valueEntryModifier,
@@ -252,14 +249,14 @@ private fun ParamsBox(
 @Composable
 private fun ParamsEntryText(
     modifier: Modifier,
-    state: MutableState<TextFieldValue>,
+    state: MutableState<String>,
     scope: CoroutineScope
 ) {
 
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     TextField(
-        value = state.value,
-        onValueChange = { newState: TextFieldValue -> state.value = newState },
+        value = state.value.toString(),
+        onValueChange = { newState: String -> state.value = newState },
         modifier = modifier
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusEvent {
@@ -280,16 +277,55 @@ private fun ParamsEntryText(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ParamsEntryNumber(
+private fun ParamsEntryInt(
     modifier: Modifier,
-    state: MutableState<TextFieldValue>,
+    state: MutableState<Int?>,
     scope: CoroutineScope
 ) {
 
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     TextField(
-        value = state.value,
-        onValueChange = { newState: TextFieldValue -> state.value = newState },
+        value = state.value?.toString() ?: "",
+        onValueChange = { newValue: String ->
+            state.value = newValue
+                .filter { it.isDigit() }
+                .toIntOrNull()
+        },
+        modifier = modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusEvent {
+                if (it.isFocused) {
+                    scope.launch {
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                }
+            },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next
+        )
+    )
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ParamsEntryFloat(
+    modifier: Modifier,
+    state: MutableState<Float?>,
+    scope: CoroutineScope
+) {
+    // we need a second state because converting from string to float and then string again causes issues
+    val stringState = remember { mutableStateOf("") }
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    TextField(
+        value = stringState.value ?: "",
+        onValueChange = { newValue: String ->
+            val asFloat = newValue.toFloatOrNull()
+            if (asFloat != null) {
+                stringState.value = newValue
+                state.value = asFloat
+            }
+        },
         modifier = modifier
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusEvent {

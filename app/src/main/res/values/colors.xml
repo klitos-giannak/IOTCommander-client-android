@@ -5,6 +5,8 @@
 
     <color name="pale_blue">#ffb0ddfb</color>
     <color name="dark_pale_blue">#ff002d4b</color>
+    <color name="green_light">#ff00eb6d</color>
+    <color name="green_light_variant">#ff00d75a</color>
     <color name="orange">#ffeb6d00</color>
     <color name="orange_variant">#ffd75a00</color>
     <color name="dark_yellow">#fff5bc11</color>

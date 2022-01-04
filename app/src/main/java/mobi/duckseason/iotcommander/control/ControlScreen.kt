@@ -399,14 +399,14 @@ private fun ControlEmptyState() {
 }
 
 private val previewCommand2 = CommandDescription(
-    "test-Collapsed",
+    "command 2",
     listOf(
         ParameterDescription("myString", ParameterType.TEXT),
     )
 )
 
 private val previewCommand3 = CommandDescription(
-    "testAll-Expanded",
+    "command 3",
     listOf(
         ParameterDescription("myString", ParameterType.TEXT),
         ParameterDescription("myInt", ParameterType.INT),
@@ -418,7 +418,7 @@ private val previewCommand3 = CommandDescription(
 private val previewViewState = ControlViewState(
     device = Device(name = "MyDevice", ""),
     commands = listOf(
-        CommandDescription("testNoParams", emptyList()),
+        CommandDescription("command 1", emptyList()),
         previewCommand2,
         previewCommand3
     ),

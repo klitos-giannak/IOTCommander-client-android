@@ -134,7 +134,11 @@ private fun DiscoverEmptyState() {
 
 private val previewDevices = listOf(
     Device("Door Handler", "192.168.1.145"),
-    Device("Thermostat", "192.168.1.190")
+    Device("Thermostat", "192.168.1.190"),
+    Device("Kitchen LED-strip", "192.168.1.101"),
+    Device("Lounge lights", "192.168.1.120"),
+    Device("Security Camera Front", "192.168.1.121"),
+    Device("Security Camera Back", "192.168.1.122"),
 )
 
 @Composable

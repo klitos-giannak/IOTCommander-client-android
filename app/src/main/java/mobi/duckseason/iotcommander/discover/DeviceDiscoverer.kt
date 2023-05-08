@@ -3,15 +3,18 @@ package mobi.duckseason.iotcommander.discover
 import android.content.Context
 import android.net.ConnectivityManager
 import android.util.Log
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.*
 import java.nio.ByteBuffer
-import kotlin.concurrent.thread
 import kotlin.math.pow
 
 
@@ -24,7 +27,10 @@ private const val RECEIVE_BUFFER_SIZE = 1500
 private val TAG = DeviceDiscoverer::class.java.simpleName
 
 
-class DeviceDiscoverer(private val appContext: Context) {
+class DeviceDiscoverer(
+    private val appContext: Context,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
 
     private val devices = mutableSetOf<Device>()
 
@@ -32,24 +38,20 @@ class DeviceDiscoverer(private val appContext: Context) {
     val devicesFlow: StateFlow<Set<Device>> = _devicesFlow.asStateFlow()
     private val _searching = MutableStateFlow(false)
     val searching = _searching.asStateFlow()
-
-    private var discoverThread: Thread? = null
+    private val _networkError = MutableStateFlow(false)
+    val networkError = _networkError.asStateFlow()
 
     private fun resetFound() {
         devices.clear()
         _devicesFlow.value = devices.toSet()
     }
 
-    fun invokeSearch() {
-        if (discoverThread?.isAlive == true) {
-            // discover is already running, bail
-            return
-        }
-
-        discoverThread = thread(name = TAG) {
+    suspend fun invokeSearch() = withContext(ioDispatcher) {
+        if (_searching.compareAndSet(expect = false, update = true)) {
             resetFound()
-            _searching.value = true
+            _networkError.value = false
 
+            @Suppress("BlockingMethodInNonBlockingContext") // false positive. Linter cannot recognise ioDispatcher is Dispatchers.IO
             val datagramSocket = try {
                 DatagramSocket().apply {
                     broadcast = true
@@ -65,36 +67,36 @@ class DeviceDiscoverer(private val appContext: Context) {
 
                 val searchUntil = System.currentTimeMillis() + SEARCH_DURATION_MILLIS
 
-                while (System.currentTimeMillis() < searchUntil) {
-                    socket.send(packet)
+                if (packet.address == null) {
+                    _networkError.value = true
+                } else {
+                    while (System.currentTimeMillis() < searchUntil) {
+                        socket.send(packet)
 
-                    val buffer = ByteArray(RECEIVE_BUFFER_SIZE)
-                    val receiver = DatagramPacket(buffer, buffer.size)
+                        val buffer = ByteArray(RECEIVE_BUFFER_SIZE)
+                        val receiver = DatagramPacket(buffer, buffer.size)
 
-                    val decodeFromString = try {
-                        socket.receive(receiver)
-                        val received = String(buffer, 0, receiver.length)
-                        Log.d(TAG, "Received: $received")
-                        Json.decodeFromString(DiscoverResponse.serializer(), received)
-                    } catch (ex: IOException) {
-                        Log.e(TAG, "Error while Receiving packet", ex)
-                        null
-                    } catch (ex: SerializationException) {
-                        Log.d(TAG, "Unable to parse received packet into a Device")
-                        null
-                    }
-
-                    decodeFromString?.let { discoverResponse ->
-                        receiver.address.hostAddress?.let { ipAddress ->
-                            devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
-                            _devicesFlow.tryEmit(devices.toSet())
+                        val decodeFromString = try {
+                            socket.receive(receiver)
+                            val received = String(buffer, 0, receiver.length)
+                            Log.d(TAG, "Received: $received")
+                            Json.decodeFromString(DiscoverResponse.serializer(), received)
+                        } catch (ex: IOException) {
+                            Log.e(TAG, "Error while Receiving packet", ex)
+                            null
+                        } catch (ex: SerializationException) {
+                            Log.d(TAG, "Unable to parse received packet into a Device")
+                            null
                         }
-                    }
 
-                    try {
-                        Thread.sleep(SEARCH_INTERVAL_MILLIS)
-                    } catch (ex: InterruptedException) {
-                        Log.e(TAG, "Receiving Thread interrupted", ex)
+                        decodeFromString?.let { discoverResponse ->
+                            receiver.address.hostAddress?.let { ipAddress ->
+                                devices.add(Device(name = discoverResponse.deviceName, ip = ipAddress))
+                                _devicesFlow.tryEmit(devices.toSet())
+                            }
+                        }
+
+                        delay(SEARCH_INTERVAL_MILLIS)
                     }
                 }
                 _searching.value = false
@@ -160,9 +162,5 @@ class DeviceDiscoverer(private val appContext: Context) {
 //            e.printStackTrace()
 //            null
 //        }
-    }
-
-    fun onTerminate() {
-        discoverThread?.interrupt()
     }
 }

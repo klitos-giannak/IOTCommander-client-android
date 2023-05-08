@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import iotcommander.R
+import mobi.duckseason.iotcommander.discover.DiscoverViewState.LoadingState
 import mobi.duckseason.iotcommander.ui.theme.IOTCommanderTheme
 
 private val SPACING_SMALL = 10.dp
@@ -45,7 +46,7 @@ fun DiscoverScreen(
 }
 
 @Composable
-private fun AppBar(onRefreshRequested: () -> Unit, loadingState: Boolean) {
+private fun AppBar(onRefreshRequested: () -> Unit, loadingState: LoadingState) {
     TopAppBar(
         title = {
             Text(text = stringResource(id = R.string.discover_title))
@@ -53,7 +54,7 @@ private fun AppBar(onRefreshRequested: () -> Unit, loadingState: Boolean) {
         actions = {
             IconButton(
                 onClick = onRefreshRequested,
-                enabled = loadingState.not()
+                enabled = loadingState != LoadingState.LOADING
             ) {
                 Icon(
                     Icons.Default.Refresh,
@@ -66,8 +67,10 @@ private fun AppBar(onRefreshRequested: () -> Unit, loadingState: Boolean) {
 
 @Composable
 private fun Content(discoverViewState: DiscoverViewState, onSelectItem: (device: Device) -> Unit) {
-    if (discoverViewState.devices.isEmpty() && discoverViewState.loadingState.not()) {
-        DiscoverEmptyState()
+    if (discoverViewState.loadingState == LoadingState.ERROR) {
+        DiscoverEmptyState(stringResource(id = R.string.discover_network_error_message))
+    } else if (discoverViewState.devices.isEmpty() && discoverViewState.loadingState == LoadingState.NOT_LOADING) {
+        DiscoverEmptyState(stringResource(id = R.string.discover_empty_state_message))
     }
 
     Column {
@@ -101,7 +104,7 @@ private fun Content(discoverViewState: DiscoverViewState, onSelectItem: (device:
             }
         }
 
-        if (discoverViewState.loadingState) {
+        if (discoverViewState.loadingState == LoadingState.LOADING) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -116,10 +119,10 @@ private fun Content(discoverViewState: DiscoverViewState, onSelectItem: (device:
 }
 
 @Composable
-private fun DiscoverEmptyState() {
+private fun DiscoverEmptyState(title: String) {
     Column(modifier = Modifier.padding(SPACING_ENORMOUS)) {
         Text(
-            text = stringResource(id = R.string.discover_empty_state_message),
+            text = title,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = SPACING_HUGE),
@@ -145,7 +148,7 @@ private val previewDevices = listOf(
 @Preview
 private fun DarkPreview() {
     IOTCommanderTheme(darkTheme = true) {
-        DiscoverScreen(DiscoverViewState(devices = previewDevices, false), {}, {})
+        DiscoverScreen(DiscoverViewState(devices = previewDevices, LoadingState.NOT_LOADING), {}, {})
     }
 }
 
@@ -153,7 +156,7 @@ private fun DarkPreview() {
 @Preview
 private fun LightPreview() {
     IOTCommanderTheme(darkTheme = false) {
-        DiscoverScreen(DiscoverViewState(devices = previewDevices, false), {}, {})
+        DiscoverScreen(DiscoverViewState(devices = previewDevices, LoadingState.NOT_LOADING), {}, {})
     }
 }
 
@@ -161,6 +164,6 @@ private fun LightPreview() {
 @Preview
 private fun EmptyStatePreview() {
     IOTCommanderTheme(darkTheme = true) {
-        DiscoverScreen(DiscoverViewState(devices = emptyList(), false), {}, {})
+        DiscoverScreen(DiscoverViewState(devices = emptyList(), LoadingState.NOT_LOADING), {}, {})
     }
 }
